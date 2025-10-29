@@ -1,5 +1,5 @@
 from typing import List
-
+from fastapi import HTTPException
 from sqlalchemy import and_
 from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
@@ -12,13 +12,12 @@ from schemas.favorites_validator import FavoritesValidator
 from utils.uuid_conv import uuid_to_binary
 
 
-def add_to_favorites(db: Session, user_id: str, anime_id: str) -> FavoritesValidator:
-    result = db.execute(
-        update(Favorites).where((Favorites.user == user_id) &
-        (Favorites.anime == anime_id)))
+def add_to_favorites(db: Session, user_id: str, anime_id: str) -> FavoritesValidator | tuple[dict[str, str], int]:
+    binary_user_id = uuid_to_binary(user_id)
+    binary_anime_id = uuid_to_binary(anime_id)
 
     try:
-        new_favorite = Favorites(user=user_id, anime=anime_id)
+        new_favorite = Favorites(user=binary_user_id, anime=binary_anime_id)
         db.add(new_favorite)
         db.commit()
         db.refresh(new_favorite)
@@ -31,24 +30,33 @@ def add_to_favorites(db: Session, user_id: str, anime_id: str) -> FavoritesValid
 
 
 def delete_from_favorites(db: Session, user_uuid: str, anime_uuid: str) -> None:
-    anime_to_remove = db.query(Favorites).get((user_uuid, anime_uuid))
+    binary_user_id = uuid_to_binary(user_uuid)
+    binary_anime_id = uuid_to_binary(anime_uuid)
+
+    anime_to_remove = db.query(Favorites).get((binary_user_id, binary_anime_id))
 
     if not anime_to_remove:
-        raise Exception("Rating not found.")
+        raise HTTPException(
+            status_code=404,
+            detail="Anime favorite not found for this user !"
+        )
 
-    db.commit()
+    try:
+        db.delete(anime_to_remove)
+        db.commit()
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not delete favorite: {e}"
+        )
 
 
-def get_favorites(db:Session, user_uuid: str, anime_uuid: str) -> list[FavoritesValidator] | tuple[None, str]:
+def get_favorites(db:Session, user_uuid: str) -> list[FavoritesValidator] | tuple[None, str]:
     binary_user_uuid = uuid_to_binary(user_uuid)
-    binary_anime_uuid = uuid_to_binary(anime_uuid)
 
-    favorites = db.execute(
-        select(Favorites).where(
-            and_ (Favorites.user == binary_user_uuid,
-                  Favorites.anime == binary_anime_uuid)
-        ).order_by(Anime.name)
-    ).scalars().all()
+    favorites = db.execute(select(Favorites).where(Favorites.user == binary_user_uuid).order_by(Anime.name)).scalars().all()
 
     if not favorites:
         return None, "The user has no favorite anime !"

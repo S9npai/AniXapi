@@ -2,16 +2,11 @@
 An anime platform RESTful API
 
 ## Tech Stack
-### Backend & Database
 - **FastAPI**  
 - **MySQL**
 - **SQLalchemy**
-
-### Security & Authentication
 - **JWT**
-- **argon2-cffi**
-
-### Other
+- **argon2**
 - **pydantic**
 
 ---
@@ -122,3 +117,4 @@ This schema defines a model called "Favorites" with various fields and their ass
 - `user`: A binary field representing the user ID who added the favorite.
 - `anime`: A binary field representing the anime ID that was favorited.
 - `user_anime_pk`: A composite primary key on user and anime to ensure uniqueness.
+

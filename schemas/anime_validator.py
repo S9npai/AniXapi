@@ -1,5 +1,5 @@
 import pydantic, datetime
-from pydantic import BaseModel, PositiveInt, ConfigDict, field_serializer, model_validator
+from pydantic import BaseModel, PositiveInt, ConfigDict, field_serializer, model_validator, Field
 from datetime import date
 from typing import Literal, Optional
 from utils.uuid_conv import binary_to_uuid, uuid_to_binary
@@ -34,9 +34,9 @@ class AnimeResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    @field_serializer('uuid')
+    """@field_serializer('uuid')
     def serialize_uuid(self, uuid_binary:bytes) -> str:
-        return binary_to_uuid(uuid_binary)
+        return binary_to_uuid(uuid_binary)"""
 
 
 class AnimeUpdate(BaseModel):
@@ -48,16 +48,14 @@ class AnimeUpdate(BaseModel):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     studio_uuid: Optional[str] = None
+    studio_name: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
-    @field_serializer('uuid')
-    def serialize_uuid(self, uuid_binary:bytes) -> str:
-        return binary_to_uuid(uuid_binary)
-
     @model_validator(mode='after')
     def check_anime_dates(self):
-        if self.start_date > self.end_date:
-            raise ValueError("start date can't come after end date !")
+        if self.start_date is not None and self.end_date is not None:
+            if self.start_date > self.end_date:
+                raise ValueError("start date can't come after end date !")
         return self
 

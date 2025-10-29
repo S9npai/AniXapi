@@ -15,7 +15,7 @@ class UserLogin(BaseModel):
     email: Optional[EmailStr] = None
     password: str
 
-    @model_validator(mode='before')
+    @model_validator(mode='after')
     def check_one_identifier(self):
         if not (self.username or self.email):
             raise ValueError("You must provide either a username or an email to log in")
@@ -27,7 +27,7 @@ class UserResponse(BaseModel):
     username: str
     email: str
     role: Literal["user", "admin"]
-    created_at: datetime.time
+    created_at: datetime
 
     model_config = ConfigDict(from_attributes = True)
 

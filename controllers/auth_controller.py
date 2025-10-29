@@ -1,12 +1,13 @@
+from uuid import uuid4
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from middleware.auth import *
+from middleware.auth import verify_password, create_access_token
 from models import user_model
-from models.user_model import *
-from schemas.auth_validator import *
-from utils.uuid_conv import *
+from models.user_model import User
+from schemas.auth_validator import UserResponse, UserCreate, UserLogin, AccessToken
+from utils.uuid_conv import uuid_to_binary, binary_to_uuid
 from argon2 import PasswordHasher
 
 ph = PasswordHasher()
@@ -65,11 +66,16 @@ def register_user(user:UserCreate, db:Session) -> UserResponse:
 
 
 def user_login(user_creds: UserLogin, db:Session) -> AccessToken:
+    conditions = []
+
+    if user_creds.username:
+        conditions.append(User.username == user_creds.username)
+
+    if user_creds.email:
+        conditions.append(User.email == str(user_creds.email).lower())
+
     user = db.execute(
-        select(User).where(
-            (User.username == user_creds.username) |
-            (User.email == str(user_creds.email).lower())
-        )
+        select(User).where(or_(*conditions))
     ).scalar_one_or_none()
 
     if user is None:
@@ -102,9 +108,6 @@ def user_login(user_creds: UserLogin, db:Session) -> AccessToken:
     return AccessToken.model_validate({"access_token": access_token, "token_type":"bearer"})
 
 
-
-
-
 def get_user_by_username(username:str, db:Session) -> UserResponse:
     user = db.execute(
         select(User).where(User.username == username)
@@ -120,8 +123,10 @@ def get_user_by_username(username:str, db:Session) -> UserResponse:
 
 
 def get_user_by_uuid(user_uuid:str, db:Session) -> UserResponse:
+    binary_uuid = uuid_to_binary(user_uuid)
+
     user = db.execute(
-        select(User).where(User.uuid == uuid_to_binary(user_uuid))
+        select(User).where(User.uuid == binary_uuid)
     ).scalar_one_or_none()
 
     if not user:
