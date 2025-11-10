@@ -2,7 +2,6 @@ import pydantic, datetime
 from pydantic import BaseModel, PositiveInt, ConfigDict, field_serializer, model_validator, Field
 from datetime import date
 from typing import Literal, Optional
-from utils.uuid_conv import binary_to_uuid, uuid_to_binary
 
 class NewAnime(BaseModel):
     name: str
@@ -37,6 +36,7 @@ class AnimeResponse(BaseModel):
     """@field_serializer('uuid')
     def serialize_uuid(self, uuid_binary:bytes) -> str:
         return binary_to_uuid(uuid_binary)"""
+    # no longer needed after the SQLAlchemy custom type
 
 
 class AnimeUpdate(BaseModel):

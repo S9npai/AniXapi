@@ -1,7 +1,6 @@
-import pydantic, uuid
-from pydantic import BaseModel, ConfigDict, field_serializer
-from typing import Optional, Literal
-from utils.uuid_conv import *
+from typing import Optional
+from pydantic import BaseModel, ConfigDict
+
 
 class StudioValidator(BaseModel):
     name: str

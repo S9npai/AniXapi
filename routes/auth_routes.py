@@ -8,12 +8,9 @@ router = APIRouter(
     prefix="/auth"
 )
 
-@router.post("/register")
-async def register_new_user(user: UserCreate, db: Session = Depends(db_conn)):
-    return register_user(user, db)
+router.post("/register")()
 
+router.post("/login")()
 
-@router.post("/login")
-async def login_user(user: UserLogin, db: Session = Depends(db_conn)):
-    return user_login(user, db)
+router.get("/logout")()
 

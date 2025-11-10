@@ -1,6 +1,5 @@
-import sqlalchemy
-from sqlalchemy.orm import Session, declarative_base
-from sqlalchemy import Column, Integer, String, ForeignKey, PrimaryKeyConstraint
+from sqlalchemy import Column, ForeignKey, PrimaryKeyConstraint
+from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 

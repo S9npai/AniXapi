@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, BINARY
+from sqlalchemy import Column, String
 from sqlalchemy.orm import declarative_base
 from utils.uuid_conv import UUIDBinary
 

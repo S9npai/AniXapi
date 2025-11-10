@@ -1,14 +1,14 @@
-import fastapi, uvicorn
-from fastapi import FastAPI
-import dotenv, os
+import os
 from dotenv import load_dotenv
+from fastapi import FastAPI
 from routes import studio_routes, anime_routes
 
 load_dotenv()
 
 PROJECT_NAME = "AniXapi"
-VERSION = "0.1.0"
+VERSION = "1.0.0"
 DEBUG_MODE = os.getenv("DEBUG MODE", "True").lower() == "true"
+
 app = FastAPI(
     title=PROJECT_NAME,
     version=VERSION,

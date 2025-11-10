@@ -1,87 +1,91 @@
+import logging
 from typing import List
 from uuid import uuid4
-from fastapi import HTTPException
+from utils.custom_exceptions import AlreadyExistsError, NotFoundError
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.sql.expression import select
-from models.studio_model import Studio
 from repositories.anime_repository import AnimeRepository
+from repositories.studio_repository import StudioRepository
 from schemas.anime_validator import NewAnime, AnimeResponse, AnimeUpdate
+
+logger = logging.getLogger(__name__)
 
 
 class AnimeService:
-    def __init__(self, repository:AnimeRepository):
-        self.repository = repository
+    def __init__(self, anime_repo: AnimeRepository, studio_repo: StudioRepository):
+        self.anime_repo = anime_repo
+        self.studio_repo = studio_repo
+
 
     def add_new_anime(self, anime_data:NewAnime) -> AnimeResponse:
-        anime_dict = anime_data.model_dump()
-        anime_uuid = str(uuid4())
-        anime_dict["uuid"] = anime_uuid
-        studio_uuid_str = anime_dict.pop("studio_uuid")
-        anime_dict["studio"] = studio_uuid_str
+        studio = self.studio_repo.get_by_uuid(anime_data.studio_uuid)
 
-        studio = self.repository.db.execute(
-            select(Studio).where(Studio.uuid == studio_uuid_str)
-        ).scalar_one_or_none()
+        anime_dict = anime_data.model_dump()
+        anime_dict["uuid"] = str(uuid4())
+        anime_dict["studio"] = studio.uuid
+        anime_dict.pop("studio_uuid", None)
+
         if not studio:
-            raise HTTPException(status_code=404, detail="Studio doesn't exist")
+            raise NotFoundError(f"Studio doesn't exist")
 
         try:
-            new_anime = self.repository.add(anime_dict)
+            new_anime = self.anime_repo.add(anime_dict)
+            logger.info(f"Created anime: {new_anime.name} (UUID: {new_anime.uuid})")
             return AnimeResponse.model_validate(new_anime)
 
-        except IntegrityError:
-            raise HTTPException(status_code=400, detail="Integrity error !")
+        except IntegrityError as e:
+            logger.error(f"Failed to create anime due to integrity error: {e}")
+            raise AlreadyExistsError(f"Anime '{anime_data.name}' already exists")
+
 
     def get_all_anime(self) -> List[AnimeResponse]:
-        animes = self.repository.get_all()
+        animes = self.anime_repo.get_all()
         return [AnimeResponse.model_validate(a) for a in animes]
 
-    def delete_anime(self, anime_uuid:str) -> bool:
-        return self.repository.delete(anime_uuid)
+
+    def get_anime_by_name(self, anime_name:str):
+        anime = self.anime_repo.get_by_name(anime_name)
+        if not anime:
+            raise NotFoundError(f"Anime named {anime_name} not found")
+        return AnimeResponse.model_validate(anime)
+
+
+    def get_anime_by_studio(self, studio_name:str):
+        studio_animes = self.anime_repo.get_by_studio(studio_name)
+        return [AnimeResponse.model_validate(sa) for sa in studio_animes]
+
+
+    def get_anime_by_uuid(self, anime_uuid:str):
+        anime = self.anime_repo.get_by_uuid(anime_uuid)
+        if not anime:
+            raise NotFoundError(f"Anime with UUID {anime_uuid} not found")
+        return AnimeResponse.model_validate(anime)
+
 
     def update_anime(self, anime_uuid:str, anime_update:AnimeUpdate) -> AnimeResponse:
-        existing_anime = self.repository.get_by_uuid(anime_uuid)
+        existing_anime = self.anime_repo.get_by_name(anime_uuid)
         if not existing_anime:
-            raise HTTPException(status_code=404, detail=f"Anime with UUID '{anime_uuid}' not found.")
+            raise NotFoundError(f"Anime with UUID '{anime_uuid}' not found.")
 
         update_data = anime_update.model_dump(exclude_unset=True)
 
-        studio_updated = False
-
-        if "studio_name" in update_data:
-            studio_name = update_data.pop("studio_name")
-            studio = self.repository.db.execute(select(Studio).where(Studio.name == studio_name)).scalar_one_or_none()
-            if not studio:
-                raise HTTPException(status_code=404, detail="Anime Studio provided for update does not exist")
+        if "studio_uuid" in update_data:
+            studio_uuid = update_data.pop("studio_uuid")
+            studio = self.studio_repo.get_by_uuid(studio_uuid)
             update_data["studio"] = studio.uuid
-            studio_updated = True
-
-        elif "studio_uuid" in update_data:
-            studio_uuid_str = update_data.pop("studio_uuid")
-            studio = self.repository.db.execute(
-                select(Studio).where(Studio.uuid == studio_uuid_str)
-            ).scalar_one_or_none()
-            if not studio:
-                raise HTTPException(status_code=404, detail="Anime Studio provided for update does not exist")
-            update_data["studio"] = studio_uuid_str
-            studio_updated = True
-
-        start_date = update_data.get("start_date", existing_anime.start_date)
-        end_date = update_data.get("end_date", existing_anime.end_date)
-        if start_date and end_date and start_date > end_date:
-            raise HTTPException(status_code=400, detail="Start date cannot come after end date!")
 
         try:
-            updated_anime = self.repository.update(existing_anime, update_data)
+            updated_anime = self.anime_repo.update(existing_anime, update_data)
+            logger.info(f"Updated anime: {updated_anime.name} (UUID: {anime_uuid})")
             return AnimeResponse.model_validate(updated_anime)
 
-        except IntegrityError:
-            raise HTTPException(status_code=400, detail="Database integrity error during anime update")
+        except IntegrityError as e:
+            logger.error(f"Failed to update anime due to integrity error: {e}")
+            raise AlreadyExistsError(f"Cannot update: anime name already exists")
 
-    def get_anime_by_studio(self, studio_uuid:str):
-        studio_animes = self.repository.get_by_studio(studio_uuid)
-        return [AnimeResponse.model_validate(sa) for sa in studio_animes]
 
-    def get_anime_by_uuid(self, anime_uuid:str):
-        anime = self.repository.get_by_uuid(anime_uuid)
-        return AnimeResponse.model_validate(anime)
+    def delete_anime(self, anime_uuid:str) -> bool:
+        result = self.anime_repo.delete(anime_uuid)
+        if result:
+            logger.info(f"Deleted anime with UUID: {anime_uuid}")
+        return result
+

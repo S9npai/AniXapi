@@ -2,7 +2,7 @@
 An anime platform RESTful API
 
 ## Tech Stack
-- **FastAPI**  
+- **FastAPI**
 - **MySQL**
 - **SQLalchemy**
 - **JWT**
@@ -17,24 +17,29 @@ An anime platform RESTful API
 git clone https://github.com/OmarSenpai/AniXapi
 ```
 
-2. **Navigate to the project path**
+2. **Navigate to the project root**
 ```
 cd AniXapi
 ```
 
 3. **Create & activate a virtual environment**
 ```
-python -m venv AniXapi
-source AniXapi/bin/activate
+python -m venv .venv
+or
+uv venv
+
+source .venv/bin/activate
 ```
 
-4. **Install required dependencies**
+4. **Install required dependencies (python 3.13+)**
 ```
 pip install requirements.txt
+or
+uv pip install -r pyproject.toml
 ```
 
 5. **Setting up environment variables**
-```
+```dotenv
 JWT_SECRET=YOUR JWT SECRET HERE
 DB_URL=YOUR DATABASE URL
 PORT=YOUR PORT
