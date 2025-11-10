@@ -82,6 +82,6 @@ class AnimeService:
         studio_animes = self.repository.get_by_studio(studio_uuid)
         return [AnimeResponse.model_validate(sa) for sa in studio_animes]
 
-    def get_anime_uuid(self, anime_uuid:str):
+    def get_anime_by_uuid(self, anime_uuid:str):
         anime = self.repository.get_by_uuid(anime_uuid)
         return AnimeResponse.model_validate(anime)

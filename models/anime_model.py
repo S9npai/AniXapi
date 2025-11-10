@@ -10,7 +10,7 @@ class Anime(Base):
     name = Column(String, unique=True, nullable=False)
     jp_name = Column(String, nullable=False)
     episodes = Column(Integer)
-    format = Column(Enum("TV","movie"))
+    format = Column(Enum("TV","movie","OVA","ONA"))
     start_date = Column(Date)
     end_date = Column(Date)
     studio = Column(UUIDBinary, ForeignKey("studios.uuid", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)

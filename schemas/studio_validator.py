@@ -14,9 +14,9 @@ class StudioResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    @field_serializer('uuid')
+    """@field_serializer('uuid')
     def serialize_uuid(self, uuid_binary:bytes) -> str:
-        return binary_to_uuid(uuid_binary)
+        return binary_to_uuid(uuid_binary)"""
 
 class StudioUpdate(BaseModel):
     name: Optional[str] = None

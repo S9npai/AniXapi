@@ -25,3 +25,6 @@ def delete_studio(studio_requested: StudioResponse, service:StudioService = Depe
 
 def get_studio_name(studio_name:str,  service:StudioService = Depends(get_studio_service)):
     return service.get_studio_by_name(studio_name)
+
+def fetch_studio_by_uuid(studio_uuid:str, service:StudioService = Depends(get_studio_service)):
+    return service.get_studio_by_uuid(studio_uuid)

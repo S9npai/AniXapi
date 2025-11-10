@@ -1,5 +1,5 @@
 from fastapi import Depends
-from sqlalchemy import Session
+from sqlalchemy.orm import Session
 from repositories.anime_repository import AnimeRepository
 from schemas.anime_validator import NewAnime, AnimeUpdate, AnimeResponse
 from schemas.studio_validator import StudioResponse, StudioValidator
@@ -23,5 +23,8 @@ def update_anime(anime_requested:AnimeResponse, anime_to_update:AnimeUpdate, ser
 def delete_anime(anime_requested: AnimeResponse, service:AnimeService = Depends(get_anime_service)):
     return service.delete_anime(anime_requested.uuid)
 
-def get_by_studio(studio: StudioResponse, service:AnimeService = Depends(get_anime_service)):
-    return service.get_anime_by_studio(studio.uuid)
+def get_by_studio(studio_uuid:str, service:AnimeService = Depends(get_anime_service)):
+    return service.get_anime_by_studio(studio_uuid)
+
+def get_anime_by_id(anime_uuid:str, service:AnimeService = Depends(get_anime_service)):
+    return service.get_anime_by_uuid(anime_uuid)

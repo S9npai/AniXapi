@@ -2,6 +2,7 @@ import fastapi, uvicorn
 from fastapi import FastAPI
 import dotenv, os
 from dotenv import load_dotenv
+from routes import studio_routes, anime_routes
 
 load_dotenv()
 
@@ -13,6 +14,9 @@ app = FastAPI(
     version=VERSION,
     debug=DEBUG_MODE
 )
+
+app.include_router(studio_routes.router)
+app.include_router(anime_routes.router)
 
 @app.get("/")
 async def root():

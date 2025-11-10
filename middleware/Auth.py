@@ -8,7 +8,6 @@ from fastapi import HTTPException, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Literal
-from controllers.auth_controller import get_user_by_uuid
 from schemas.auth_validator import UserResponse
 from utils.db_connection import db_conn
 
@@ -36,12 +35,8 @@ def fetch_current_user_payload(token: str = Depends(oauth2_scheme)) -> dict:
 
 
 def get_current_user(
-    payload: dict = Depends(fetch_current_user_payload),
-    db: Session = Depends(db_conn),
-) -> UserResponse:
+    payload: dict = Depends(fetch_current_user_payload), db: Session = Depends(db_conn)) -> UserResponse:
     user_uuid = payload.get("sub")
-
-    return get_user_by_uuid(user_uuid, db)
 
 
 def verify_password(plain_password, hashed_password) -> tuple[bool, str | None]:

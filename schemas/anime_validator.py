@@ -8,7 +8,7 @@ class NewAnime(BaseModel):
     name: str
     jp_name: str
     episodes: PositiveInt
-    format: Literal["TV", "movie"]
+    format: Literal["TV", "movie", "OVA", "ONA"]
     start_date: date
     end_date: date
     studio_uuid: str
@@ -27,7 +27,7 @@ class AnimeResponse(BaseModel):
     name: str
     jp_name: str
     episodes: PositiveInt
-    format: Literal["TV", "movie"]
+    format: Literal["TV", "movie", "OVA", "ONA"]
     start_date: date
     end_date: date
     studio_uuid: str
@@ -44,7 +44,7 @@ class AnimeUpdate(BaseModel):
     name: Optional[str] = None
     jp_name: Optional[str] = None
     episodes: Optional[PositiveInt] = None
-    format: Optional[Literal["TV", "movie"]] = None
+    format: Optional[Literal["TV", "movie", "OVA", "ONA"]] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     studio_uuid: Optional[str] = None

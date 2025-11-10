@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import select
 from models.studio_model import Studio
 from repositories.base_repository import BaseRepository
-from utils.uuid_conv import uuid_to_binary
 
 
 class StudioRepository(BaseRepository[Studio]):
@@ -16,16 +15,12 @@ class StudioRepository(BaseRepository[Studio]):
             select(Studio).order_by(Studio.name)
         ).scalars().all()
 
-    def add(self, studio_data: Dict[str, Any]) -> Optional[Studio]:
-        try:
-            new_studio = Studio(**studio_data)
-            self.db.add(new_studio)
-            self.db.commit()
-            self.db.refresh(new_studio)
-            return new_studio
-
-        except SQLAlchemyError:
-            self.db.rollback()
+    def add(self, studio_data: Dict[str, Any]) -> Studio:
+        new_studio = Studio(**studio_data)
+        self.db.add(new_studio)
+        self.db.commit()
+        self.db.refresh(new_studio)
+        return new_studio
 
     def delete(self, uuid: str) -> bool:
         try:
@@ -39,6 +34,7 @@ class StudioRepository(BaseRepository[Studio]):
 
         except SQLAlchemyError:
             self.db.rollback()
+            return False
 
     def get_by_name(self, name:str):
         return self.db.execute(select(Studio).where(
@@ -46,20 +42,15 @@ class StudioRepository(BaseRepository[Studio]):
         ).scalar_one_or_none()
 
     def get_by_uuid(self, studio_uuid: str) -> Optional[Studio]:
-        binary_uuid = uuid_to_binary(studio_uuid)
         return self.db.execute(select(Studio).where(
-            Studio.uuid == binary_uuid
+            Studio.uuid == studio_uuid
         )).scalar_one_or_none()
 
-    def update(self, studio: Studio, update_data: Dict[str, Any]) -> Optional[Studio]:
-        try:
-            for key, value in update_data.items():
-                if hasattr(studio, key):
-                    setattr(studio, key, value)
+    def update(self, studio: Studio, update_data: Dict[str, Any]) -> Studio:
+        for key, value in update_data.items():
+            if hasattr(studio, key):
+                setattr(studio, key, value)
 
-            self.db.commit()
-            self.db.refresh(studio)
-
-        except SQLAlchemyError:
-            self.db.rollback()
-
+        self.db.commit()
+        self.db.refresh(studio)
+        return studio
