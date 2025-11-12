@@ -14,7 +14,7 @@ class AnimeRepository:
         self.db = db
 
 
-    def add(self, anime_data: Dict[str, Any]):
+    def add(self, anime_data: Dict[str, Any]) -> Anime:
         try:
             new_anime = Anime(**anime_data)
             self.db.add(new_anime)
@@ -64,7 +64,10 @@ class AnimeRepository:
     def get_by_studio(self, studio_name: str):
         try:
             return self.db.execute(
-                select(Anime).join(Anime.studio).where(Studio.name == studio_name)
+                select(Anime)
+                .join(Anime.studios)
+                .where(Studio.name == studio_name)
+                .group_by(Anime.uuid)
             ).scalars().all()
 
         except SQLAlchemyError as e:
@@ -88,18 +91,18 @@ class AnimeRepository:
             raise
 
 
-    def delete(self, anime_name: str) -> bool:
+    def delete(self, anime_uuid: str):
         try:
-            anime = self.get_by_name(anime_name)
+            anime = self.get_by_uuid(anime_uuid)
             if not anime:
                 return False
 
             self.db.delete(anime)
             self.db.commit()
-            raise
+            return True
 
         except SQLAlchemyError as e:
             self.db.rollback()
             logger.error(f"Error deleting anime record: {e}", exc_info=True)
-            raise
+            return False
 

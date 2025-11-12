@@ -1,7 +1,8 @@
-import pydantic, datetime
-from pydantic import BaseModel, PositiveInt, ConfigDict, field_serializer, model_validator, Field
 from datetime import date
-from typing import Literal, Optional
+from typing import Literal, Optional, List
+from pydantic import BaseModel, PositiveInt, ConfigDict, model_validator, UUID4
+from schemas.studio_validator import StudioResponse
+
 
 class NewAnime(BaseModel):
     name: str
@@ -10,7 +11,7 @@ class NewAnime(BaseModel):
     format: Literal["TV", "movie", "OVA", "ONA"]
     start_date: date
     end_date: date
-    studio_uuid: str
+    studio_uuids: List[UUID4]
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -22,14 +23,14 @@ class NewAnime(BaseModel):
 
 
 class AnimeResponse(BaseModel):
-    uuid: str
+    uuid: UUID4
     name: str
     jp_name: str
     episodes: PositiveInt
     format: Literal["TV", "movie", "OVA", "ONA"]
     start_date: date
     end_date: date
-    studio_uuid: str
+    studios: List[StudioResponse]
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -40,15 +41,13 @@ class AnimeResponse(BaseModel):
 
 
 class AnimeUpdate(BaseModel):
-    uuid: Optional[str] = None
     name: Optional[str] = None
     jp_name: Optional[str] = None
     episodes: Optional[PositiveInt] = None
     format: Optional[Literal["TV", "movie", "OVA", "ONA"]] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
-    studio_uuid: Optional[str] = None
-    studio_name: Optional[str] = None
+    studio_uuids: Optional[List[UUID4]] = None
 
     model_config = ConfigDict(from_attributes=True)
 

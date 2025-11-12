@@ -1,7 +1,5 @@
 from sqlalchemy import Column, ForeignKey, PrimaryKeyConstraint
-from sqlalchemy.orm import declarative_base
-
-Base = declarative_base()
+from models.BaseModel import Base
 
 class Favorites(Base):
     __tablename__ = "favorites"

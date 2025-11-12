@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, UUID4
 
 
 class StudioValidator(BaseModel):
@@ -8,7 +8,7 @@ class StudioValidator(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class StudioResponse(BaseModel):
-    uuid: str
+    uuid: UUID4
     name: str
 
     model_config = ConfigDict(from_attributes=True)

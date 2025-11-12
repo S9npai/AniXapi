@@ -54,6 +54,28 @@ class AuthRepository:
             raise
 
 
+    def get_by_username(self, username:str) -> User:
+        try:
+            return self.db.execute(select(User).where(
+                User.username == username)
+            ).scalar_one_or_none()
+
+        except SQLAlchemyError as e:
+            logger.error(f"Error fetching user by username: {e}", exc_info=True)
+            raise
+
+
+    def get_by_email(self, email:str) -> User:
+        try:
+            return self.db.execute(select(User).where(
+                User.email == email)
+            ).scalar_one_or_none()
+
+        except SQLAlchemyError as e:
+            logger.error(f"Error fetching user by email: {e}", exc_info=True)
+            raise
+
+
     def delete(self, user_uuid: str) -> bool:
         try:
             user_to_del = self.get_by_uuid(user_uuid)

@@ -1,8 +1,9 @@
-from fastapi import HTTPException
-from pydantic import UUID4
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from repositories.favorites_repository import FavoritesRepository
+from schemas.anime_validator import AnimeResponse
 from schemas.favorites_validator import FavoritesValidator
+from utils.custom_exceptions import AlreadyExistsError
+
 
 class FavoritesService:
     def __init__(self, repository:FavoritesRepository):
@@ -13,15 +14,12 @@ class FavoritesService:
         try:
             new_fav = self.repository.add(fav_dict)
             return FavoritesValidator.model_validate(new_fav)
-        except IntegrityError as e:
-            raise HTTPException(status_code=400, detail=f"Favorite record already exists or constraint violation")
         except SQLAlchemyError as e:
-            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+            raise AlreadyExistsError(f"Favorite record already exists !: {e}")
 
-    def delete_favorite(self, user:UUID4, anime_name:str):
-        self.repository.delete(user ,anime_name)
+    def delete_favorite(self, user_uuid:str, anime_uuid:str):
+        return self.repository.delete(user_uuid ,anime_uuid)
 
-    def get_all_favorites(self):
-        favorites = self.repository.get_all()
-        return [FavoritesValidator.model_validate(f) for f in favorites]
-
+    def get_user_favs(self, user_uuid:str):
+        favorites = self.repository.get_user_favorites(user_uuid)
+        return [AnimeResponse.model_validate(f) for f in favorites]

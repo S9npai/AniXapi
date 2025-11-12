@@ -1,8 +1,10 @@
-from sqlalchemy import Column, Integer, String, Enum, Date, ForeignKey
-from sqlalchemy.orm import declarative_base
-from utils.uuid_conv import UUIDBinary
+from sqlalchemy import Column, Integer, String, Enum, Date
+from sqlalchemy.orm import declarative_base, relationship
 
-Base = declarative_base()
+from models.favorites_model import Favorites
+from models.studio_anime_model import anime_studio_association
+from utils.uuid_conv import UUIDBinary
+from models.BaseModel import Base
 
 class Anime(Base):
     __tablename__ = "anime"
@@ -13,4 +15,15 @@ class Anime(Base):
     format = Column(Enum("TV","movie","OVA","ONA"))
     start_date = Column(Date)
     end_date = Column(Date)
-    studio = Column(UUIDBinary, ForeignKey("studios.uuid", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+
+    favorited_by = relationship(
+        "User",
+        secondary=Favorites.__tablename__,
+        back_populates="favorites"
+    )
+
+    studios = relationship(
+        "Studio",
+        secondary=anime_studio_association,
+        back_populates="animes"
+    )

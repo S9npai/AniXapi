@@ -17,15 +17,17 @@ class AnimeService:
 
 
     def add_new_anime(self, anime_data:NewAnime) -> AnimeResponse:
-        studio = self.studio_repo.get_by_uuid(anime_data.studio_uuid)
+        studios = []
+        for studio_uuid in anime_data.studio_uuids:
+            studio = self.studio_repo.get_by_uuid(studio_uuid)
+            if not studio:
+                raise NotFoundError(f"Studio with {studio_uuid} not found")
+            studios.append(studio)
 
         anime_dict = anime_data.model_dump()
         anime_dict["uuid"] = str(uuid4())
-        anime_dict["studio"] = studio.uuid
-        anime_dict.pop("studio_uuid", None)
-
-        if not studio:
-            raise NotFoundError(f"Studio doesn't exist")
+        anime_dict["studios"] = studios
+        anime_dict.pop("studio_uuids", None)
 
         try:
             new_anime = self.anime_repo.add(anime_dict)
@@ -42,19 +44,19 @@ class AnimeService:
         return [AnimeResponse.model_validate(a) for a in animes]
 
 
-    def get_anime_by_name(self, anime_name:str):
+    def get_anime_by_name(self, anime_name:str) -> AnimeResponse:
         anime = self.anime_repo.get_by_name(anime_name)
         if not anime:
             raise NotFoundError(f"Anime named {anime_name} not found")
         return AnimeResponse.model_validate(anime)
 
 
-    def get_anime_by_studio(self, studio_name:str):
+    def get_anime_by_studio(self, studio_name:str) -> list[AnimeResponse]:
         studio_animes = self.anime_repo.get_by_studio(studio_name)
         return [AnimeResponse.model_validate(sa) for sa in studio_animes]
 
 
-    def get_anime_by_uuid(self, anime_uuid:str):
+    def get_anime_by_uuid(self, anime_uuid:str) -> AnimeResponse:
         anime = self.anime_repo.get_by_uuid(anime_uuid)
         if not anime:
             raise NotFoundError(f"Anime with UUID {anime_uuid} not found")
@@ -62,16 +64,24 @@ class AnimeService:
 
 
     def update_anime(self, anime_uuid:str, anime_update:AnimeUpdate) -> AnimeResponse:
-        existing_anime = self.anime_repo.get_by_name(anime_uuid)
+        existing_anime = self.anime_repo.get_by_uuid(anime_uuid)
         if not existing_anime:
             raise NotFoundError(f"Anime with UUID '{anime_uuid}' not found.")
 
         update_data = anime_update.model_dump(exclude_unset=True)
 
-        if "studio_uuid" in update_data:
-            studio_uuid = update_data.pop("studio_uuid")
-            studio = self.studio_repo.get_by_uuid(studio_uuid)
-            update_data["studio"] = studio.uuid
+        if "studio_uuids" in update_data:
+            studio_uuids = update_data.pop("studio_uuids")
+
+            existing_anime.studios.clear()
+
+            for studio_uuid in studio_uuids:
+                studio = self.studio_repo.get_by_uuid(studio_uuid)
+                if not studio:
+                    raise NotFoundError(f"Studio with {studio_uuid} does not exist")
+                existing_anime.studios.append(studio)
+
+            update_data.pop("studio_uuids",None)
 
         try:
             updated_anime = self.anime_repo.update(existing_anime, update_data)

@@ -14,9 +14,9 @@ def get_favorites_service(db:Session = Depends(db_conn)) -> FavoritesService:
 def add_new_favorite(new_fav_data:FavoritesValidator, service:FavoritesService = Depends(get_favorites_service)):
     return service.add_new_favorite(new_fav_data)
 
-def get_all_favorites(service:FavoritesService = Depends(get_favorites_service)):
-    return service.get_all_favorites()
+def get_user_favorites(user_uuid:str, service:FavoritesService = Depends(get_favorites_service)):
+    return service.get_user_favs(user_uuid)
 
-def delete_favorite(user:UUID4, fav_requested:str, service:FavoritesService = Depends(get_favorites_service)):
-    return service.delete_favorite(user, fav_requested)
+def delete_favorite(user_uuid:UUID4, anime_uuid:UUID4, service:FavoritesService = Depends(get_favorites_service)):
+    return service.delete_favorite(str(user_uuid), str(anime_uuid))
 

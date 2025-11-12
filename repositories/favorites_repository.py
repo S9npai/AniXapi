@@ -1,5 +1,4 @@
 from typing import Dict, Any, Optional
-from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -13,6 +12,7 @@ logger = logging.getLogger(__name__)
 class FavoritesRepository:
     def __init__(self, db:Session):
         self.db =db
+
 
     def add(self, fav_data: Dict[str, Any]) -> Favorites:
         try:
@@ -28,24 +28,20 @@ class FavoritesRepository:
             raise
 
 
-    def get_all(self):
+    def get_user_favorites(self, user_uuid: str):
         return self.db.execute(
-            select(Favorites).join(Favorites.anime).order_by(Anime.name)
+            select(Anime)
+            .join(Favorites, Favorites.anime == Anime.uuid)
+            .where(Favorites.user == user_uuid)
+            .order_by(Anime.name)
         ).scalars().all()
 
 
-    def select_anime(self, anime_name: str) -> Optional[UUID]:
-        return self.db.execute(
-            select(Anime.uuid).where(Anime.name == anime_name)
-        ).scalar_one_or_none()
-
-
-    def delete(self, user_uuid:UUID, anime_name:str) -> bool:
-        anime_uuid = self.select_anime(anime_name)
-
+    def delete(self, user_uuid:str, anime_uuid:str) -> bool:
         try:
             favorite_record = self.db.execute(
-                select(Favorites).where(
+                select(Favorites)
+                .where(
                     Favorites.user == user_uuid,
                     Favorites.anime == anime_uuid
                 )
@@ -62,3 +58,4 @@ class FavoritesRepository:
             self.db.rollback()
             logger.error(f"Error removing anime favorite: {e}", exc_info=True)
             raise
+

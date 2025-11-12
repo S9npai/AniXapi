@@ -60,7 +60,7 @@ class StudioRepository:
             raise
 
 
-    def update(self, studio: Studio, update_data: Dict[str, Any]) -> Studio:
+    def update(self, studio:Studio, update_data: Dict[str, Any]) -> Studio:
         try:
             for key, value in update_data.items():
                 if hasattr(studio, key):
@@ -76,9 +76,9 @@ class StudioRepository:
             raise
 
 
-    def delete(self, name:str) -> bool:
+    def delete(self, studio_uuid:str) -> bool:
         try:
-            studio = self.get_by_name(name)
+            studio = self.get_by_uuid(studio_uuid)
             if not studio:
                 return False
 

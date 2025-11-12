@@ -11,11 +11,10 @@ router = APIRouter(
 
 router.post("/", response_model=StudioResponse)(add_new_studio)
 
-router.get("/all", response_model=List[StudioResponse])(get_all_studios)
+router.get("/", response_model=List[StudioResponse])(get_all_studios)
 
-router.delete("/", response_model=StudioResponse)(delete_studio)
+router.patch("/{studio_uuid}", response_model=StudioResponse)(update_studio)
 
-router.patch("/", response_model=StudioResponse)(update_studio)
+router.get("/name/{studio_name}", response_model=StudioResponse)(get_studio_name)
 
-router.get("/{studio_name}", response_model=StudioResponse)(get_studio_name)
-
+router.delete("/{studio_uuid}")(delete_studio)

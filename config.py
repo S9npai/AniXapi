@@ -2,12 +2,13 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from routes import studio_routes, anime_routes
+from settings import settings
 
 load_dotenv()
 
 PROJECT_NAME = "AniXapi"
-VERSION = "1.0.0"
-DEBUG_MODE = os.getenv("DEBUG MODE", "True").lower() == "true"
+VERSION = "0.1.0"
+DEBUG_MODE = settings.debug
 
 app = FastAPI(
     title=PROJECT_NAME,

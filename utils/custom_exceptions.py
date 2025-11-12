@@ -11,3 +11,9 @@ class InvalidRangeError(Exception):
 
 class InvalidInputError(Exception):
     pass
+
+class ValidityError(Exception):
+    pass
+
+class UnauthorizedError(Exception):
+    pass

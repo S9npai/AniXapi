@@ -46,7 +46,7 @@ class StudioService:
 
 
     def update_studio(self, studio_uuid:str, studio_update:StudioUpdate):
-        existing_studio = self.repo.get_by_name(studio_uuid)
+        existing_studio = self.repo.get_by_uuid(studio_uuid)
         if not existing_studio:
             raise NotFoundError(f"Studio with UUID '{studio_uuid}' not found.")
 
@@ -54,7 +54,7 @@ class StudioService:
 
         try:
             updated_studio = self.repo.update(existing_studio, update_data)
-            logger.info(f"Updated anime: {update_data.name} (UUID: {studio_uuid})")
+            logger.info(f"Updated studio: {updated_studio.name} (UUID: {studio_uuid})")
             return StudioResponse.model_validate(updated_studio)
 
         except IntegrityError as e:
