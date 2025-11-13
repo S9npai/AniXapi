@@ -23,4 +23,3 @@ router.get("/name/{anime_name}", response_model=AnimeResponse)(anime_by_name)
 router.patch("/{anime_uuid}", response_model=AnimeResponse)(update_anime)
 
 router.delete("/{anime_uuid}")(delete_anime)
-
