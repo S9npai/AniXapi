@@ -2,6 +2,8 @@ from typing import Any, Dict, Optional
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+
+from models.refresh_token_model import RefreshToken
 from models.user_model import User
 import logging
 
@@ -89,5 +91,43 @@ class AuthRepository:
         except SQLAlchemyError as e:
             self.db.rollback()
             logger.error(f"Can't delete user data !: {e}", exc_info=True)
+            raise
+
+
+    def add_refresh_token(self, token_data: Dict[str, Any]):
+        try:
+            new_token = RefreshToken(**token_data)
+            self.db.add(new_token)
+            self.db.commit()
+            self.db.refresh(new_token)
+            return new_token
+
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            logger.error(f"Error adding new refresh token: {e}", exc_info=True)
+            raise
+
+
+    def get_refresh_token_jti(self, jti: str) -> Optional[RefreshToken]:
+        try:
+            return self.db.execute(select(RefreshToken).where(
+                RefreshToken.id == jti)
+            ).scalar_one_or_none()
+
+        except SQLAlchemyError as e:
+            logger.error(f"Error fetching refresh token by JTI: {e}", exc_info=True)
+            raise
+
+
+    def revoke_refresh_token(self, token: RefreshToken):
+        try:
+            token.is_revoked = True
+            self.db.commit()
+            self.db.refresh(token)
+            return True
+
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            logger.error(f"Can't revoke refresh token !: {e}", exc_info=True)
             raise
 

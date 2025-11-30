@@ -62,3 +62,4 @@ class AuthService:
 
         return AccessToken(access_token=access_token)
 
+

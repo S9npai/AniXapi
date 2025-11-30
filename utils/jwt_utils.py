@@ -46,7 +46,7 @@ def create_refresh_token(data: dict, expire_delta: timedelta | None = None) -> s
     return encoded_jwt
 
 
-def verify_jwt(token: str) -> dict:
+def verify_jwt(token: str, expected_type: str = "access") -> dict:
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithm=settings.algorithm)
         user_uuid: str = payload.get("sub")
@@ -55,8 +55,8 @@ def verify_jwt(token: str) -> dict:
         if user_uuid is None:
             raise NotFoundError(f"User wih UUID {user_uuid} not found")
 
-        if token_type == "refresh":
-
+        if token_type != expected_type:
+            raise ValidityError(f"Invalid token type. Expected {expected_type}, got {token_type}")
 
         return payload
 
