@@ -1,19 +1,15 @@
-from fastapi import APIRouter, FastAPI, Depends
-from controllers.auth_controller import *
-from schemas.auth_validator import *
-from utils.db_connection import *
+from fastapi import APIRouter
+from controllers.auth_controller import user_register, get_running_user, user_login
+from schemas.auth_validator import UserResponse
 
 router = APIRouter(
     tags=["Authentication"],
     prefix="/auth"
 )
 
-@router.post("/register")
-async def register_new_user(user: UserCreate, db: Session = Depends(db_conn)):
-    return register_user(user, db)
+router.post("/register", response_model=UserResponse)(user_register)
 
+router.post("/login", response_model=UserResponse)(user_login)
 
-@router.post("/login")
-async def login_user(user: UserLogin, db: Session = Depends(db_conn)):
-    return user_login(user, db)
+router.get("/me", response_model=UserResponse)(get_running_user)
 

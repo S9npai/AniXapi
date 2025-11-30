@@ -2,16 +2,11 @@
 An anime platform RESTful API
 
 ## Tech Stack
-### Backend & Database
-- **FastAPI**  
+- **FastAPI**
 - **MySQL**
 - **SQLalchemy**
-
-### Security & Authentication
 - **JWT**
-- **argon2-cffi**
-
-### Other
+- **argon2**
 - **pydantic**
 
 ---
@@ -22,24 +17,29 @@ An anime platform RESTful API
 git clone https://github.com/OmarSenpai/AniXapi
 ```
 
-2. **Navigate to the project path**
+2. **Navigate to the project root**
 ```
 cd AniXapi
 ```
 
 3. **Create & activate a virtual environment**
 ```
-python -m venv AniXapi
-source AniXapi/bin/activate
+python -m venv .venv
+or
+uv venv
+
+source .venv/bin/activate
 ```
 
-4. **Install required dependencies**
+4. **Install required dependencies (python 3.13+)**
 ```
 pip install requirements.txt
+or
+uv pip install -r pyproject.toml
 ```
 
 5. **Setting up environment variables**
-```
+```dotenv
 JWT_SECRET=YOUR JWT SECRET HERE
 DB_URL=YOUR DATABASE URL
 PORT=YOUR PORT
@@ -121,3 +121,4 @@ This schema defines a model called "Favorites" with various fields and their ass
 - `user`: A binary field representing the user ID who added the favorite.
 - `anime`: A binary field representing the anime ID that was favorited.
 - `user_anime_pk`: A composite primary key on user and anime to ensure uniqueness.
+

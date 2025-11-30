@@ -8,4 +8,5 @@ router = APIRouter(
     prefix="/review"
 )
 
-@router.post("/submit")
+@router.post("/")
+

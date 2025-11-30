@@ -1,9 +1,7 @@
 from typing import List
-from fastapi import APIRouter, FastAPI, Depends
-from controllers.studio_controller import *
-from schemas.studio_validator import *
-from utils.db_connection import *
-from sqlalchemy.orm import Session
+from fastapi import APIRouter
+from controllers.studio_controller import add_new_studio, update_studio, get_all_studios, delete_studio, get_studio_name
+from schemas.studio_validator import StudioResponse, StudioValidator, StudioUpdate
 
 router = APIRouter(
     tags=["Studio"],
@@ -11,33 +9,12 @@ router = APIRouter(
 )
 
 
-@router.post("/", response_model=StudioResponse)
-def create_studio(
-        studio_data: StudioValidator,
-        db: Session = Depends(db_conn)
-):
-    return add_new_studio(studio_data, db)
+router.post("/", response_model=StudioResponse)(add_new_studio)
 
+router.get("/", response_model=List[StudioResponse])(get_all_studios)
 
-@router.delete("/")
-def remove_studio(
-        studio_data: StudioValidator,
-        db: Session = Depends(db_conn)
-):
-    return delete_studio(studio_data ,db)
+router.patch("/{studio_uuid}", response_model=StudioResponse)(update_studio)
 
+router.get("/name/{studio_name}", response_model=StudioResponse)(get_studio_name)
 
-@router.get("/", response_model=List[StudioResponse])
-def read_all_studios(
-        db: Session = Depends(db_conn)
-):
-    return get_all_studios(db)
-
-
-@router.get("/")
-def all_studio_anime(
-        studio_data: StudioValidator,
-        db: Session = Depends(db_conn)
-):
-    return all_anime_by_studio(studio_data ,db)
-
+router.delete("/{studio_uuid}")(delete_studio)
