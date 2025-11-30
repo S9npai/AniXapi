@@ -101,7 +101,6 @@ This schema defines a model called "Studio" with various fields and their associ
 4 - **RATINGS SCHEMA** <br>
 This schema defines a model called "Ratings" with various fields and their associated attributes.
 
-- `rating_uuid`: A binary field that serves as the primary key for identifying individual ratings.
 - `user`: A binary field representing the user ID associated with the rating.
 - `anime`: A binary field representing the anime ID associated with the rating.
 
