@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     jwt_secret: str = Field(alias="JWT_SECRET")
     algorithm: str = Field(alias="ALGORITHM")
     access_token_expire_minutes: int = Field(alias="ACCESS_TOKEN_EXPIRE_MINUTES")
+    refresh_token_expire_minutes = access_token_expire_minutes*3
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

@@ -14,3 +14,4 @@ class Studio(Base):
         secondary=anime_studio_association,
         back_populates="studios"
     )
+

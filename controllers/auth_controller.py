@@ -1,11 +1,25 @@
-from services.auth_service import AuthService, get_current_user
-from sqlalchemy.orm import Session
-from models.user_model import User
 from fastapi import Depends
+from sqlalchemy.orm import Session
+from middleware.Auth import get_payload
 from repositories.auth_repository import AuthRepository
 from schemas.auth_validator import UserResponse, UserRegister, UserLogin
 from services.auth_service import AuthService
+from utils.custom_exceptions import NotFoundError, UnauthorizedError
 from utils.db_connection import db_conn
+
+
+def get_current_user(payload: dict = Depends(get_payload), db: Session = Depends(db_conn)) -> UserResponse:
+    user_uuid = payload.get("sub")
+
+    if user_uuid is None:
+        raise NotFoundError(f"Invalid token payload, didn't find user ID")
+
+    auth_repo = AuthRepository(db)
+    user = auth_repo.get_by_uuid(user_uuid)
+
+    if not user:
+        raise UnauthorizedError("Unauthorized !")
+    return UserResponse.model_validate(user)
 
 
 def get_auth_service(db:Session = Depends(db_conn)) -> AuthService:

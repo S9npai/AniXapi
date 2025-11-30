@@ -54,7 +54,7 @@ class AuthRepository:
             raise
 
 
-    def get_by_username(self, username:str) -> User:
+    def get_by_username(self, username:str) -> Optional[User]:
         try:
             return self.db.execute(select(User).where(
                 User.username == username)
@@ -65,7 +65,7 @@ class AuthRepository:
             raise
 
 
-    def get_by_email(self, email:str) -> User:
+    def get_by_email(self, email:str) -> Optional[User]:
         try:
             return self.db.execute(select(User).where(
                 User.email == email)
@@ -90,3 +90,4 @@ class AuthRepository:
             self.db.rollback()
             logger.error(f"Can't delete user data !: {e}", exc_info=True)
             raise
+
