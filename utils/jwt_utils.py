@@ -1,5 +1,8 @@
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Any
+from uuid import UUID
+
 import jwt
 from settings import settings
 from jwt import ExpiredSignatureError, InvalidTokenError
@@ -25,7 +28,7 @@ def create_access_token(data: dict, expire_delta: timedelta | None = None) -> st
     return encoded_jwt
 
 
-def create_refresh_token(data: dict, expire_delta: timedelta | None = None) -> str:
+def create_refresh_token(data: dict, expire_delta: timedelta | None = None) -> tuple[str, str, datetime]:
     jwt_token = data.copy()
     if "sub" not in jwt_token:
         raise ValueError("Token payload must contain a 'sub' claim")
@@ -43,7 +46,7 @@ def create_refresh_token(data: dict, expire_delta: timedelta | None = None) -> s
     jwt_token.update({"exp": expire})
 
     encoded_jwt = jwt.encode(jwt_token, settings.jwt_secret, algorithm=settings.algorithm)
-    return encoded_jwt
+    return encoded_jwt, jti, expire
 
 
 def verify_jwt(token: str, expected_type: str = "access") -> dict:

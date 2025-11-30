@@ -1,5 +1,6 @@
-from typing import Any, Dict, Optional
-from sqlalchemy import select
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional, Callable
+from sqlalchemy import select, delete
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -129,5 +130,66 @@ class AuthRepository:
         except SQLAlchemyError as e:
             self.db.rollback()
             logger.error(f"Can't revoke refresh token !: {e}", exc_info=True)
+            raise
+
+
+    def delete_expired_tokens(self):
+        try:
+            result = self.db.execute(
+                delete(RefreshToken).where(
+                    RefreshToken.expires_at < datetime.now(timezone.utc)
+                )
+            )
+
+            self.db.commit()
+            return result.rowcount
+
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            logger.error(f"Can't delete expired tokens: {e}", exc_info=True)
+            raise
+
+
+    def revoke_user_tokens(self, user_uuid: str):
+        try:
+            result = self.db.execute(
+                select(RefreshToken).where(
+                    RefreshToken.user_uuid == user_uuid,
+                    RefreshToken.is_revoked == False
+                )
+            )
+
+            tokens = result.scalars().all()
+
+            count = 0
+            for token in tokens:
+                token.is_revoked = True
+                count += 1
+
+            self.db.commit()
+            return count
+
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            logger.error(f"Could not revoke user tokens: {e}", exc_info=True)
+            raise
+
+
+    def get_user_tokens(self, user_uuid: str):
+        try:
+            result = self.db.execute(
+                select(RefreshToken).where(
+                    RefreshToken.user_uuid == user_uuid,
+                    RefreshToken.is_revoked == False,
+                    RefreshToken.expires_at > datetime.now(timezone.utc)
+                )
+                .order_by(RefreshToken.issued_at.desc())
+            )
+
+            return result.scalars().all()
+
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            logger.error(f"Can't fetch active user tokens: {e}", exc_info=True)
             raise
 
