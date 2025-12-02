@@ -6,7 +6,6 @@ class Favorites(Base):
     user = Column(ForeignKey("users.uuid", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     anime = Column(ForeignKey("anime.uuid", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
 
-    __table_args__ = (
-        PrimaryKeyConstraint ("user","anime")
-    )
-
+    __mapper_args__ = {
+            "primary_key": [user, anime]  # explicitly tell SQLAlchemy the PK columns
+        }

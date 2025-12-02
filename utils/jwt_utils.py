@@ -1,55 +1,57 @@
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any
-from uuid import UUID
-
 import jwt
-from settings import settings
 from jwt import ExpiredSignatureError, InvalidTokenError
-from utils.custom_exceptions import NotFoundError, ValidityError
 from pydantic import UUID
+import config
+from project_settings import settings
+from utils.custom_exceptions import NotFoundError, ValidityError
+
+issuer = config.PROJECT_NAME
 
 
-def create_access_token(data: dict, expire_delta: timedelta | None = None) -> str:
-    jwt_token = data.copy()
-    if "sub" not in jwt_token:
-        raise ValueError("Token payload must contain a 'sub' claim")
+def create_access_token(user_uuid: str, role: str) -> str:
+    issued_at = int(datetime.now(timezone.utc).timestamp())
+    expire = int((datetime.now(timezone.utc) +
+                  timedelta(minutes=settings.refresh_token_expire_minutes)).timestamp())
+    sub = user_uuid
 
-    jwt_token["type"] = "access"
 
-    if expire_delta:
-        expire = datetime.now(timezone.utc) + expire_delta
-
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)
-    jwt_token.update({"exp": expire})
+    jwt_token = {
+        "iat": issued_at,
+        "exp": expire,
+        "sub": sub,
+        "iss": issuer,
+        "type": "access",
+        "role": role
+    }
 
     encoded_jwt = jwt.encode(jwt_token, settings.jwt_secret, algorithm=settings.algorithm)
     return encoded_jwt
 
 
-def create_refresh_token(data: dict, expire_delta: timedelta | None = None) -> tuple[str, str, datetime]:
-    jwt_token = data.copy()
-    if "sub" not in jwt_token:
-        raise ValueError("Token payload must contain a 'sub' claim")
+def create_refresh_token(user_uuid: str):
+    issued_at = int(datetime.now(timezone.utc).timestamp())
+    expire_dt = datetime.now(timezone.utc) + timedelta(minutes=settings.refresh_token_expire_minutes)
+    expire = int(expire_dt.timestamp())
+    sub = user_uuid
+    jti = uuid.uuid4()
 
-    jwt_token["type"] = "refresh"
 
-    jti = (uuid.uuid4())
-    jwt_token["jti"] = jti
-
-    if expire_delta:
-        expire = datetime.now(timezone.utc) + expire_delta
-
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.refresh_token_expire_minutes)
-    jwt_token.update({"exp": expire})
+    jwt_token = {
+        "iat": issued_at,
+        "exp": expire,
+        "sub": sub,
+        "iss": issuer,
+        "type": "refresh",
+        "jti": str(jti)
+    }
 
     encoded_jwt = jwt.encode(jwt_token, settings.jwt_secret, algorithm=settings.algorithm)
-    return encoded_jwt, jti, expire
+    return encoded_jwt, jti, expire_dt
 
 
-def verify_jwt(token: str, expected_type: str = "access") -> dict:
+def verify_jwt(token: str, expected_type: str) -> dict:
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithm=settings.algorithm)
         user_uuid: str = payload.get("sub")

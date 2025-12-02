@@ -59,9 +59,8 @@ class AuthService:
             user.password_hash = new_hash
             self.repo.update(user, {"password_hash": new_hash})
 
-        token_data = {"sub": str(user.uuid), "role": user.role}
-        access_token = create_access_token(data=token_data)
-        refresh_token, jti, expires_at = create_refresh_token(data=token_data)
+        access_token = create_access_token(str(user.uuid), user.role)
+        refresh_token, jti, expires_at = create_refresh_token(str(user.uuid))
 
         refresh_token_data = {
             "id": jti,
@@ -84,12 +83,12 @@ class AuthService:
         try:
             payload = verify_jwt(refresh_token, expected_type="refresh")
         except ValidityError as e:
-            UnauthorizedError(f"Not a valid refresh token: {str(e)}")
+            raise UnauthorizedError(f"Not a valid refresh token: {str(e)}")
 
         jti = payload.get("jti")
         user_uuid = payload.get("sub")
 
-        if not user_uuid or jti:
+        if not user_uuid or not jti:
             raise UnauthorizedError(f"Invalid refresh token payload")
 
         stored_token = self.repo.get_refresh_token_jti(jti)
@@ -108,14 +107,12 @@ class AuthService:
         user = self.repo.get_by_uuid(user_uuid)
 
         if not user:
-            NotFoundError("User no longer exists !")
+            raise NotFoundError("User no longer exists !")
 
         self.repo.revoke_refresh_token(stored_token)
 
-        token_data = {"sub": str(user.uuid), "role": user.role}
-        access_token = create_access_token(data=token_data)
-        new_refresh_token, new_jti, expires_at = create_refresh_token(data=token_data)
-
+        access_token = create_access_token(str(user.uuid), user.role)
+        new_refresh_token, new_jti, expires_at = create_refresh_token(str(user.uuid))
 
         new_refresh_token_data = {
             "id": new_jti,
@@ -131,4 +128,8 @@ class AuthService:
             raise
 
         return TokenPair(access_token=access_token, refresh_token=new_refresh_token)
+
+
+    def logout_all_devices(self, user_uuid):
+        return self.repo.revoke_user_tokens(user_uuid)
 
