@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-class Settings(BaseSettings):
+class ProjectSettings(BaseSettings):
     db_url: MySQLDsn = Field(alias="DB_URL")
     port: int = Field(alias="PORT")
     log_level: str = "INFO"
