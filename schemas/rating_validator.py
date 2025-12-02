@@ -1,9 +1,15 @@
-from pydantic import BaseModel, NonNegativeFloat, Field
+from pydantic import ConfigDict, BaseModel, Field
 
 
-class RatingValidator(BaseModel):
-    anime: str
-    user: str
-    value: NonNegativeFloat = Field(ge=0, le=5)
+class RatingCreate(BaseModel):
+    anime_uuid: str
+    value: float = Field(ge=0, le=5)
 
+
+class RatingResponse(BaseModel):
+    anime_uuid: str
+    user_uuid: str
+    value: float
+
+    model_config = ConfigDict(from_attributes=True)
 

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Enum, TIMESTAMP
+from sqlalchemy import Column, String, Enum, DateTime
 from sqlalchemy import func
 from sqlalchemy.orm import relationship
 
@@ -12,7 +12,7 @@ class User(Base):
     username = Column(String, unique=True, nullable=False)
     email = Column(String, nullable=False, unique=True)
     password_hash = Column(String, nullable=False)
-    created_at = Column(TIMESTAMP(timezone=True), nullable=False, default=func.now())
+    created_at = Column(DateTime(timezone=True), nullable=False, default=func.now())
     role = Column(Enum("user","admin"), default="user")
 
     favorites = relationship(
@@ -20,3 +20,10 @@ class User(Base):
         secondary=Favorites.__tablename__,
         back_populates="favorited_by"
     )
+
+    refresh_tokens = relationship(
+        "RefreshToken",
+        back_populates="users",
+        cascade="all, delete-orphan"
+    )
+

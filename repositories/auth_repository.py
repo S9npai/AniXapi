@@ -1,7 +1,10 @@
-from typing import Any, Dict, Optional
-from sqlalchemy import select
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional, Callable
+from sqlalchemy import select, delete
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+
+from models.refresh_token_model import RefreshToken
 from models.user_model import User
 import logging
 
@@ -54,7 +57,7 @@ class AuthRepository:
             raise
 
 
-    def get_by_username(self, username:str) -> User:
+    def get_by_username(self, username:str) -> Optional[User]:
         try:
             return self.db.execute(select(User).where(
                 User.username == username)
@@ -65,7 +68,7 @@ class AuthRepository:
             raise
 
 
-    def get_by_email(self, email:str) -> User:
+    def get_by_email(self, email:str) -> Optional[User]:
         try:
             return self.db.execute(select(User).where(
                 User.email == email)
@@ -90,3 +93,103 @@ class AuthRepository:
             self.db.rollback()
             logger.error(f"Can't delete user data !: {e}", exc_info=True)
             raise
+
+
+    def add_refresh_token(self, token_data: Dict[str, Any]):
+        try:
+            new_token = RefreshToken(**token_data)
+            self.db.add(new_token)
+            self.db.commit()
+            self.db.refresh(new_token)
+            return new_token
+
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            logger.error(f"Error adding new refresh token: {e}", exc_info=True)
+            raise
+
+
+    def get_refresh_token_jti(self, jti: str) -> Optional[RefreshToken]:
+        try:
+            return self.db.execute(select(RefreshToken).where(
+                RefreshToken.id == jti)
+            ).scalar_one_or_none()
+
+        except SQLAlchemyError as e:
+            logger.error(f"Error fetching refresh token by JTI: {e}", exc_info=True)
+            raise
+
+
+    def revoke_refresh_token(self, token: RefreshToken):
+        try:
+            token.is_revoked = True
+            self.db.commit()
+            self.db.refresh(token)
+            return True
+
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            logger.error(f"Can't revoke refresh token !: {e}", exc_info=True)
+            raise
+
+
+    def delete_expired_tokens(self):
+        try:
+            result = self.db.execute(
+                delete(RefreshToken).where(
+                    RefreshToken.expires_at < datetime.now(timezone.utc)
+                )
+            )
+
+            self.db.commit()
+            return result.rowcount
+
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            logger.error(f"Can't delete expired tokens: {e}", exc_info=True)
+            raise
+
+
+    def revoke_user_tokens(self, user_uuid: str):
+        try:
+            result = self.db.execute(
+                select(RefreshToken).where(
+                    RefreshToken.user_uuid == user_uuid,
+                    RefreshToken.is_revoked == False
+                )
+            )
+
+            tokens = result.scalars().all()
+
+            count = 0
+            for token in tokens:
+                token.is_revoked = True
+                count += 1
+
+            self.db.commit()
+            return count
+
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            logger.error(f"Could not revoke user tokens: {e}", exc_info=True)
+            raise
+
+
+    def get_user_tokens(self, user_uuid: str):
+        try:
+            result = self.db.execute(
+                select(RefreshToken).where(
+                    RefreshToken.user_uuid == user_uuid,
+                    RefreshToken.is_revoked == False,
+                    RefreshToken.expires_at > datetime.now(timezone.utc)
+                )
+                .order_by(RefreshToken.issued_at.desc())
+            )
+
+            return result.scalars().all()
+
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            logger.error(f"Can't fetch active user tokens: {e}", exc_info=True)
+            raise
+

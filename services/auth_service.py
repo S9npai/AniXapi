@@ -1,14 +1,15 @@
 import logging
 import uuid
+from datetime import datetime, timezone
 from fastapi import Depends
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from middleware.Auth import get_payload
 from repositories.auth_repository import AuthRepository
-from schemas.auth_validator import UserResponse, UserRegister, UserLogin, AccessToken
-from utils.custom_exceptions import NotFoundError, UnauthorizedError, AlreadyExistsError
+from schemas.auth_validator import UserResponse, UserRegister, UserLogin, TokenPair
+from utils.custom_exceptions import UnauthorizedError, AlreadyExistsError, ValidityError, NotFoundError
 from utils.db_connection import db_conn
-from utils.jwt_utils import create_access_token
+from utils.jwt_utils import create_access_token, create_refresh_token, verify_jwt
 from utils.password_utils import hash_password, verify_and_rehash_password
 
 logger = logging.getLogger(__name__)
@@ -75,8 +76,101 @@ class AuthService:
             user.password_hash = new_hash
             self.repo.update(user, {"password_hash": new_hash})
 
-        data = {"sub": str(user.uuid), "role": user.role}
-        access_token = create_access_token(data=data)
+        access_token = create_access_token(str(user.uuid), user.role)
+        refresh_token, jti, expires_at = create_refresh_token(str(user.uuid))
 
-        return AccessToken(access_token=access_token)
+        refresh_token_data = {
+            "id": jti,
+            "user_uuid": str(user.uuid),
+            "expires_at": expires_at,
+            "is_revoked": False
+        }
+
+        try:
+            self.repo.add_refresh_token(refresh_token_data)
+        except Exception as e:
+            logger.error(f"Failed to store refresh token: {e}")
+            raise
+
+        return TokenPair(access_token=access_token, refresh_token=refresh_token)
+
+
+    # implements token revocation & rotation for enhanced security
+    def refresh_access_token(self, refresh_token: str):
+        try:
+            payload = verify_jwt(refresh_token, expected_type="refresh")
+        except ValidityError as e:
+            raise UnauthorizedError(f"Not a valid refresh token: {str(e)}")
+
+        jti = payload.get("jti")
+        user_uuid = payload.get("sub")
+
+        if not user_uuid or not jti:
+            raise UnauthorizedError(f"Invalid refresh token payload")
+
+        stored_token = self.repo.get_refresh_token_jti(jti)
+
+        if not stored_token:
+            raise UnauthorizedError("Refresh token not found")
+
+        if stored_token.is_revoked:
+            logger.warning(f"Revoking, token reuse detected for user {user_uuid}")
+            self.repo.revoke_user_tokens(user_uuid)
+            raise UnauthorizedError("Token has been revoked")
+
+        if stored_token.expires_at < datetime.now(timezone.utc):
+            raise UnauthorizedError(f"Refresh token has expired")
+
+        user = self.repo.get_by_uuid(user_uuid)
+
+        if not user:
+            raise NotFoundError("User no longer exists !")
+
+        self.repo.revoke_refresh_token(stored_token)
+
+        access_token = create_access_token(str(user.uuid), user.role)
+        new_refresh_token, new_jti, expires_at = create_refresh_token(str(user.uuid))
+
+        new_refresh_token_data = {
+            "id": new_jti,
+            "user_uuid": str(user.uuid),
+            "expires_at": expires_at,
+            "is_revoked": False,
+        }
+
+        try:
+            self.repo.add_refresh_token(new_refresh_token_data)
+        except Exception as e:
+            logger.error(f"Failed to store new refresh token: {e}")
+            raise
+
+        return TokenPair(access_token=access_token, refresh_token=new_refresh_token)
+
+
+    def logout(self, refresh_token: str):
+        try:
+            payload = verify_jwt(refresh_token, "refresh")
+        except:
+            raise UnauthorizedError(f"Invalid refresh token")
+
+        jti = payload.get("jti")
+        if not jti:
+            raise UnauthorizedError(f"Not a valid JWT token payload")
+
+        stored_token = self.repo.get_refresh_token_jti(jti)
+        if not stored_token:
+            raise NotFoundError(f"Refresh token not found !")
+
+        self.repo.revoke_refresh_token(stored_token)
+        return {"message": "logged out successfully !"}
+
+
+    def logout_all_devices(self, user_uuid):
+        user = self.repo.get_by_uuid(user_uuid)
+
+        if not user:
+            raise NotFoundError(f"User with UUID {user_uuid} doesn't exist !")
+
+        count = self.repo.revoke_user_tokens(user_uuid)
+        return {"message": f"Logged out successfully out of {count} devices"}
 

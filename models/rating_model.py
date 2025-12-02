@@ -1,16 +1,20 @@
 from sqlalchemy import Column, ForeignKey, Float, PrimaryKeyConstraint, CheckConstraint
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import relationship
 
-Base = declarative_base()
+from BaseModel import Base
+from utils.uuid_conv import UUIDBinary
+
 
 class Rating(Base):
     __tablename__ = "ratings"
-    anime = Column(ForeignKey("anime.uuid", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-    user = Column(ForeignKey("users.uuid", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    anime = Column(UUIDBinary, ForeignKey("anime.uuid", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    user = Column(UUIDBinary, ForeignKey("users.uuid", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     value = Column(Float)
 
     __table_args__ = (
-        PrimaryKeyConstraint ("user","anime"),
-        CheckConstraint('value >=0 AND value <= 5', name='rating_value_check')
+        PrimaryKeyConstraint ("user","anime")
     )
+
+    user_rel = relationship("User", back_populates="ratings")
+    anime_rel = relationship("Anime", back_populates="ratings")
 
