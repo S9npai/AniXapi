@@ -5,7 +5,7 @@ from jwt import ExpiredSignatureError, InvalidTokenError
 from pydantic import UUID
 import config
 from project_settings import settings
-from utils.custom_exceptions import NotFoundError, ValidityError
+from utils.custom_exceptions import NotFoundError, ValidityError, InvalidInputError
 
 issuer = config.PROJECT_NAME
 
@@ -16,6 +16,8 @@ def create_access_token(user_uuid: str, role: str) -> str:
                   timedelta(minutes=settings.refresh_token_expire_minutes)).timestamp())
     sub = user_uuid
 
+    if role.lower() != ("admin" or "user"):
+        raise InvalidInputError(f"Not a valid role")
 
     jwt_token = {
         "iat": issued_at,

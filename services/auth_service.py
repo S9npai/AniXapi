@@ -1,15 +1,32 @@
 import logging
 import uuid
 from datetime import datetime, timezone
-
+from fastapi import Depends
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+from middleware.Auth import get_payload
 from repositories.auth_repository import AuthRepository
 from schemas.auth_validator import UserResponse, UserRegister, UserLogin, AccessToken, TokenPair
 from utils.custom_exceptions import UnauthorizedError, AlreadyExistsError, ValidityError, NotFoundError
+from utils.db_connection import db_conn
 from utils.jwt_utils import create_access_token, create_refresh_token, verify_jwt
 from utils.password_utils import hash_password, verify_and_rehash_password
 
 logger = logging.getLogger(__name__)
+
+
+async def get_current_user(payload: dict = Depends(get_payload), db: Session = Depends(db_conn)) -> UserResponse:
+    user_uuid = payload.get("sub")
+
+    if user_uuid is None:
+        raise NotFoundError(f"Invalid token payload, didn't find user ID")
+
+    auth_repo = AuthRepository(db)
+    user = auth_repo.get_by_uuid(user_uuid)
+
+    if not user:
+        raise UnauthorizedError("Unauthorized !")
+    return UserResponse.model_validate(user)
 
 
 class AuthService:
@@ -71,9 +88,9 @@ class AuthService:
 
         try:
             self.repo.add_refresh_token(refresh_token_data)
-
         except Exception as e:
             logger.error(f"Failed to store refresh token: {e}")
+            raise
 
         return TokenPair(access_token=access_token, refresh_token=refresh_token)
 
@@ -131,5 +148,10 @@ class AuthService:
 
 
     def logout_all_devices(self, user_uuid):
+        user = self.repo.get_by_uuid(user_uuid)
+
+        if not user:
+            raise NotFoundError(f"User with UUID {user_uuid} doesn't exist !")
+
         return self.repo.revoke_user_tokens(user_uuid)
 
