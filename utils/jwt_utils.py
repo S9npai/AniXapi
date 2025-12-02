@@ -2,12 +2,10 @@ import uuid
 from datetime import datetime, timedelta, timezone
 import jwt
 from jwt import ExpiredSignatureError, InvalidTokenError
-from pydantic import UUID
-import config
 from project_settings import settings
 from utils.custom_exceptions import NotFoundError, ValidityError, InvalidInputError
 
-issuer = config.PROJECT_NAME
+issuer = "AniXapi"
 
 
 def create_access_token(user_uuid: str, role: str) -> str:

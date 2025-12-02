@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from middleware.Auth import get_payload
 from repositories.auth_repository import AuthRepository
-from schemas.auth_validator import UserResponse, UserRegister, UserLogin, AccessToken, TokenPair
+from schemas.auth_validator import UserResponse, UserRegister, UserLogin, TokenPair
 from utils.custom_exceptions import UnauthorizedError, AlreadyExistsError, ValidityError, NotFoundError
 from utils.db_connection import db_conn
 from utils.jwt_utils import create_access_token, create_refresh_token, verify_jwt
@@ -15,7 +15,7 @@ from utils.password_utils import hash_password, verify_and_rehash_password
 logger = logging.getLogger(__name__)
 
 
-async def get_current_user(payload: dict = Depends(get_payload), db: Session = Depends(db_conn)) -> UserResponse:
+def get_current_user(payload: dict = Depends(get_payload), db: Session = Depends(db_conn)) -> UserResponse:
     user_uuid = payload.get("sub")
 
     if user_uuid is None:
@@ -147,11 +147,30 @@ class AuthService:
         return TokenPair(access_token=access_token, refresh_token=new_refresh_token)
 
 
+    def logout(self, refresh_token: str):
+        try:
+            payload = verify_jwt(refresh_token, "refresh")
+        except:
+            raise UnauthorizedError(f"Invalid refresh token")
+
+        jti = payload.get("jti")
+        if not jti:
+            raise UnauthorizedError(f"Not a valid JWT token payload")
+
+        stored_token = self.repo.get_refresh_token_jti(jti)
+        if not stored_token:
+            raise NotFoundError(f"Refresh token not found !")
+
+        self.repo.revoke_refresh_token(stored_token)
+        return {"message": "logged out successfully !"}
+
+
     def logout_all_devices(self, user_uuid):
         user = self.repo.get_by_uuid(user_uuid)
 
         if not user:
             raise NotFoundError(f"User with UUID {user_uuid} doesn't exist !")
 
-        return self.repo.revoke_user_tokens(user_uuid)
+        count = self.repo.revoke_user_tokens(user_uuid)
+        return {"message": f"Logged out successfully out of {count} devices"}
 
